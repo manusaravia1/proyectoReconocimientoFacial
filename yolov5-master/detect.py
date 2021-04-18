@@ -1,6 +1,8 @@
 import argparse
 import time
 from pathlib import Path
+import multiprocessing as mp
+import os 
 
 import cv2
 import torch
@@ -13,9 +15,15 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
-from faceRecognition import *
 
-def detect(save_img=False):
+from faceRecognition import *
+imagenes_deteccion = []
+encodings_conocidos = []
+nombres_conocidos = []
+font = ''
+
+
+def detect(opt, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -102,14 +110,19 @@ def detect(save_img=False):
                 # Write results
 
                 nombres_rostros = []
-                for *xyxy, conf, cls in reversed(det):
-
+                for *xyxy, conf, cls in reversed(det):    # Paralelizacion
                     # Face recognition
                     xywh = torch.tensor(xyxy).view(1, 4).tolist()
                     crop_img = im0[int(xywh[0][1]):int(xywh[0][1]) + int(xywh[0][3]), int(xywh[0][0]):int(xywh[0][0]) + int(xywh[0][2])]
-                    nombres_rostros += faceRecognition(crop_img, encodings_conocidos, nombres_conocidos, font)
-                    cv2.imshow("cropped", crop_img)
+                    
 
+                    # Funciona muy mal, pero la idea no ta mala (Jorge approves)
+                    #faceRecognitionThread = mp.Process(target=faceRecognition, args=(crop_img,int(xywh[0][0]),int(xywh[0][1])))
+                    #faceRecognitionThread.start()
+
+
+                    # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
+                    #nombres_rostros = faceRecognition(crop_img, int(xywh[0][0]), int(xywh[0][1]))
 
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -145,18 +158,29 @@ def detect(save_img=False):
                         h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
                     vid_writer.write(im0)
+        key = cv2.waitKey(1)
+        if key == 27 or key == ord('q'):
+            print('[i] ==> Interrupted by user!')
+            cv2.destroyAllWindows()
+            break
+
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
+    
+def olaMundo(salchicha):
+    while True:    
+        print(salchicha)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='data/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='0', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.35, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
@@ -171,15 +195,35 @@ if __name__ == '__main__':
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
+    parser.add_argument('--createEncodings', type=str, default='0', help='create encodings 1, or not encodings 0')   
     opt = parser.parse_args()
     print(opt)
-    check_requirements(exclude=('pycocotools', 'thop'))
 
+    check_requirements(exclude=('pycocotools', 'thop'))
+    
+    if(opt.createEncodings == '1' or not os.path.isfile('dataset_faces.dat')):
+        print('\nCreation of encodings\n')
+        createEncondings()
+    else:
+        print('\nNo new creation of encodings\n')
+
+    
     with torch.no_grad():
-        encodings_conocidos, nombres_conocidos, font = createEncondings()
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
                 detect()
                 strip_optimizer(opt.weights)
+                
         else:
-            detect()
+            yoloProcess = mp.Process(target=detect, args=(opt,))
+            yoloProcess.start()
+            
+            holaMundoProcess = mp.Process(target=olaMundo, args=('salchicha',))
+            holaMundoProcess.start()
+
+  
+            holaMundoProcess.join()
+            holaMundoProcess2.join()
+
+            yoloProcess.join()
+

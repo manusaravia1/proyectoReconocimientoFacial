@@ -14,7 +14,7 @@ from imutils.face_utils import rect_to_bb
 
 def contrast(image):
 
-    new_image = image[:]
+    new_image = image.copy()
     coefficient = 0.8
 
     w,h,c = image.shape
@@ -30,13 +30,13 @@ def contrast(image):
     palette = []
     for i in range(256):
 
-        '''if i > 180:
+        if i > 180:
             coefficient = (255 - i)*0.0066 + 0.5
         else:
             coefficient = 1
 
         if avg > 170 and i < 100:
-            coefficient = 1.5'''
+            coefficient = 1.5
 
         temp = int(avg + coefficient * (i - avg))
         if temp < 0:
