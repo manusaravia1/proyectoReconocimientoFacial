@@ -23,7 +23,7 @@ nombres_conocidos = []
 font = ''
 
 
-def detect(opt, save_img=False):
+def detect(opt, child_conn, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -106,24 +106,13 @@ def detect(opt, save_img=False):
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
-                # Write results
-
-                nombres_rostros = []
+                    
+                cropped_images = []
                 for *xyxy, conf, cls in reversed(det):    # Paralelizacion
                     # Face recognition
                     xywh = torch.tensor(xyxy).view(1, 4).tolist()
-                    crop_img = im0[int(xywh[0][1]):int(xywh[0][1]) + int(xywh[0][3]), int(xywh[0][0]):int(xywh[0][0]) + int(xywh[0][2])]
+                    cropped_images.append([im0[int(xywh[0][1]):int(xywh[0][1]) + int(xywh[0][3]), int(xywh[0][0]):int(xywh[0][0]) + int(xywh[0][2])], int(xywh[0][0]), int(xywh[0][1])])
                     
-
-                    # Funciona muy mal, pero la idea no ta mala (Jorge approves)
-                    #faceRecognitionThread = mp.Process(target=faceRecognition, args=(crop_img,int(xywh[0][0]),int(xywh[0][1])))
-                    #faceRecognitionThread.start()
-
-
-                    # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
-                    #nombres_rostros = faceRecognition(crop_img, int(xywh[0][0]), int(xywh[0][1]))
-
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
@@ -133,7 +122,12 @@ def detect(opt, save_img=False):
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
-                print(nombres_rostros)
+
+                # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
+                child_conn.send(cropped_images)
+                #nombres_rostros = child_conn.recv()
+                #print(nombres_rostros)
+                
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
 
@@ -171,10 +165,6 @@ def detect(opt, save_img=False):
 
     print(f'Done. ({time.time() - t0:.3f}s)')
     
-def olaMundo(salchicha):
-    while True:    
-        print(salchicha)
-        time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -215,15 +205,12 @@ if __name__ == '__main__':
                 strip_optimizer(opt.weights)
                 
         else:
-            yoloProcess = mp.Process(target=detect, args=(opt,))
+            parent_conn, child_conn = mp.Pipe()
+            lock = mp.Lock()
+            yoloProcess = mp.Process(target=detect, args=(opt, child_conn,))
             yoloProcess.start()
             
-            holaMundoProcess = mp.Process(target=olaMundo, args=('salchicha',))
-            holaMundoProcess.start()
-
-  
-            holaMundoProcess.join()
-            holaMundoProcess2.join()
+            faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
+            faceRecognitionProcess.start()
 
             yoloProcess.join()
-

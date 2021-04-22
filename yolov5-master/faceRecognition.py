@@ -4,6 +4,7 @@ import numpy as np
 import glob
 import face_recognition
 from filters import *
+from PIL import Image
 
 def createEncondings():  # Creamos los encodings si es necesario
     global nombres_conocidos
@@ -13,19 +14,26 @@ def createEncondings():  # Creamos los encodings si es necesario
     global encodings_conocidos
     encodings_conocidos = []
 
-    for filename in glob.glob('samples/faces/*.jpeg'):  # Carpeta donde se almacenan todas las imagenes
+
+    #for filename in glob.glob('/samples/faces/*'):
+        #Image.open(filename).convert('RGB').save('/samples/faces/' + filename.split('/')[-1].split('.')[0] + '.jpg')
+
+
+    for filename in glob.glob('.\\samples\\faces\\*'):  # Carpeta donde se almacenan todas las imagenes
         # Lista con todos los nombres de las personas
-        nombres_conocidos.append(filename.split('\\')[-1].split('.jpeg')[0])                    
+        nombres_conocidos.append(filename.split('\\')[-1].split('.')[0])                    
         # Imagen de la persona
-        image = cv2.cvtColor(face_recognition.load_image_file(filename), cv2.COLOR_BGR2RGB)     #dsdssdsdsddssdsdddddddddddddddddddddddddddddddddddddddddddddddddd 
+        image = face_recognition.load_image_file(filename)    
+        #print(filename)
+        #cv2.imshow(filename.split('/')[-1].split('.')[0], image)
         # Lista con todas las imagenes
         imagenes_deteccion.append(image)   
         # Lista con los encodings de las imagenes                                                     
         encodings_conocidos.append(face_recognition.face_encodings(image)[0])                   
 
-    count = 0
     # Diccionario de los encodings con el nombre de la persona a almacenar
-    all_face_encodings = {}                                                                    
+    all_face_encodings = {}    
+    count = 0                                                                
     for name in nombres_conocidos:
         all_face_encodings[name] = encodings_conocidos[count]
         count += 1
@@ -46,15 +54,31 @@ def loadEncondings():
     global font
     font = cv2.FONT_HERSHEY_COMPLEX
 
-
-def faceRecognitionLoop():
+def faceRecognitionLoop(parent_conn, lock):
     loadEncondings()
+    oldConn = 0
+    newConn = 1
     while True:
-        faceRecognition(face, x_crop, y_crop)
+        newConn = parent_conn.recv()
+            #print(newConn[0])
+            #if(newConn != oldConn):
+                #lock.acquire()
+                #try:
+        persons = []
+        #print(type(newConn))
+        for person in newConn:        
+            persons.append(faceRecognition(person[0], person[1], person[2]))
+        print(persons)
+        #parent_conn.send(persons)    
+            #finally:
+                #lock.release()
 
 
 def faceRecognition(face, x_crop, y_crop):   
-    img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+    #img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+    img = face
+    #print(face)
+    #cv2.imshow('salchicha', img)
     # Definir tres arrays, que servirán para guardar los parámetros de los rostros que se encuentren en la imagen:
     loc_rostros = []  # Localizacion de los rostros en la imagen (contendrá las coordenadas de los recuadros que las contienen)
     encodings_rostros = []  # Encodings de los rostros
@@ -74,11 +98,11 @@ def faceRecognition(face, x_crop, y_crop):
         pos_rostros[i][3] = loc_rostros[i][2] - loc_rostros[i][0]
     if(len(loc_rostros) > 0):
         crop_face = face[loc_rostros[0][0]:loc_rostros[0][2], loc_rostros[0][3]:loc_rostros[0][1]]
-        cv2.imshow("cropped", crop_face)
-        new_cropped = contrast(crop_face) # Evitamos problemas de luminosidad
-        cv2.imshow("contrast cropped", new_cropped)
-        new_cropped = sharp(new_cropped)  # Generamos mejor contorno a la imagen  
-        cv2.imshow("sharped cropped", new_cropped)
+        #cv2.imshow("cropped", crop_face)
+        #new_cropped = contrast(crop_face) # Evitamos problemas de luminosidad
+        #cv2.imshow("contrast cropped", new_cropped)
+        #new_cropped = sharp(new_cropped)  # Generamos mejor contorno a la imagen  
+        #cv2.imshow("sharped cropped", new_cropped)
         #cv2.imshow("New",newCropped)
     # Filtros aplciados
 
