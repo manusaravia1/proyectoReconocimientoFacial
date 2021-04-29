@@ -15,6 +15,7 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
+import math
 
 from faceRecognition import *
 imagenes_deteccion = []
@@ -23,7 +24,7 @@ nombres_conocidos = []
 font = ''
 
 
-def detect(opt, child_conn, save_img=False):
+def detect(opt, child_conn, lock, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -63,6 +64,19 @@ def detect(opt, child_conn, save_img=False):
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+
+
+    last_box = []
+    actual_box = []
+
+    last_ids = []
+    actual_ids = []
+    max_id = 0
+    last_names = []
+    actual_names = []
+
+
+
 
     # Run inference
     if device.type != 'cpu':
@@ -113,23 +127,81 @@ def detect(opt, child_conn, save_img=False):
                     xywh = torch.tensor(xyxy).view(1, 4).tolist()
                     cropped_images.append([im0[int(xywh[0][1]):int(xywh[0][1]) + int(xywh[0][3]), int(xywh[0][0]):int(xywh[0][0]) + int(xywh[0][2])], int(xywh[0][0]), int(xywh[0][1])])
                     
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                    p1 = (int(xywh[0][0]), int(xywh[0][1]))
+                    p2 = (int(xywh[0][2]), int(xywh[0][3]))
+                    color = (255, 0, 0)
 
-                    if save_img or view_img:  # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+                    person_id = -1
+                    person_name = "???"
+
+                    for person in range(len(last_box)):
+                        l1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
+                        l2 = (int(last_box[person][0][2]), int(last_box[person][0][3]))
+
+                        dist1 = math.sqrt(((l1[0] - p1[0]) ** 2) + ((l1[1] - p1[1]) ** 2))
+                        dist2 = math.sqrt(((l2[0] - p2[0]) ** 2) + ((l2[1] - p2[1]) ** 2))
+
+                        if dist1+dist2 < 60:
+                            person_id = last_ids[person]
+                            person_name = last_names[person]
+                            break
+                        else:
+                            # person_id = max(actual_ids, default=0)+1
+                            max_id += 1
+                            person_id = max_id
+                            person_name = "???"
+
+                            if max_id > 9999: 
+                                max_id = 0
+
+                    im0 = cv2.rectangle(im0, p1, p2, color, thickness=2)
+                    cv2.putText(im0, person_name, (int(xywh[0][0]) + 2, int(xywh[0][1]) + 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, color,1)
+
+                    #l_ids.append(person_id)
+                    actual_box.append(xywh)
+                    actual_ids.append(person_id)
+                    actual_names.append(person_name)
+            
+
+                   
 
                 # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
-                child_conn.send(cropped_images)
-                #nombres_rostros = child_conn.recv()
-                #print(nombres_rostros)
                 
+                
+                last_box = []
+                last_ids = []
+                last_names = []
+
+                for person in actual_box: last_box.append(person)
+                for person in actual_ids: last_ids.append(person)
+                for person in actual_names: last_names.append(person)
+
+
+                lock.acquire()    
+                try:
+                    child_conn.send([cropped_images, actual_ids])
+                    personas = child_conn.recv()    # siempre tiene que recivir
+                    for i in range(len(personas[0])):                        
+                        if (personas[0][i][0] != "???"):
+                            indexPersons = last_ids.index(personas[1][i])
+                            last_names[indexPersons] = personas[0][i][0]    
+                finally:
+                    actual_box = []
+                    actual_ids = []
+                    actual_names = []
+                    lock.release()
+                    
+
+
+                
+                
+
+ 
+                
+
+
             # Print time (inference + NMS)
-            print(f'{s}Done. ({t2 - t1:.3f}s)')
+            #print(f'{s}Done. ({t2 - t1:.3f}s)')
 
             # Stream results
             if view_img:
@@ -207,7 +279,8 @@ if __name__ == '__main__':
         else:
             parent_conn, child_conn = mp.Pipe()
             lock = mp.Lock()
-            yoloProcess = mp.Process(target=detect, args=(opt, child_conn,))
+
+            yoloProcess = mp.Process(target=detect, args=(opt, child_conn,  lock,))
             yoloProcess.start()
             
             faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))

@@ -51,8 +51,7 @@ def loadEncondings():
     global encodings_conocidos
     encodings_conocidos = np.array(list(all_face_encodings.values()))
     print('Users in encodigns:\n' + str(nombres_conocidos) + '\n')
-    global font
-    font = cv2.FONT_HERSHEY_COMPLEX
+
 
 def faceRecognitionLoop(parent_conn, lock):
     loadEncondings()
@@ -60,18 +59,18 @@ def faceRecognitionLoop(parent_conn, lock):
     newConn = 1
     while True:
         newConn = parent_conn.recv()
-            #print(newConn[0])
-            #if(newConn != oldConn):
-                #lock.acquire()
-                #try:
         persons = []
-        #print(type(newConn))
-        for person in newConn:        
-            persons.append(faceRecognition(person[0], person[1], person[2]))
-        print(persons)
-        #parent_conn.send(persons)    
-            #finally:
-                #lock.release()
+        for person in newConn[0]:  
+            nombre = faceRecognition(person[0], person[1], person[2])
+            if nombre:
+                persons.append(nombre)
+            else:
+                persons.append(['???'])
+        persons2 = []
+        persons2.append(persons)
+        persons2.append(newConn[1])
+        parent_conn.send(persons2)   
+
 
 
 def faceRecognition(face, x_crop, y_crop):   
@@ -91,6 +90,7 @@ def faceRecognition(face, x_crop, y_crop):
     h = len(face)
     w = len(face[0])
     pos_rostros = [[0 for j in range(4)] for i in range(len(loc_rostros))]
+
     for i in range(len(loc_rostros)):
         pos_rostros[i][0] = loc_rostros[i][3] + x_crop
         pos_rostros[i][1] = loc_rostros[i][0] + y_crop
