@@ -24,8 +24,6 @@ def createEncondings():  # Creamos los encodings si es necesario
         nombres_conocidos.append(filename.split('\\')[-1].split('.')[0])                    
         # Imagen de la persona
         image = face_recognition.load_image_file(filename)    
-        #print(filename)
-        #cv2.imshow(filename.split('/')[-1].split('.')[0], image)
         # Lista con todas las imagenes
         imagenes_deteccion.append(image)   
         # Lista con los encodings de las imagenes                                                     

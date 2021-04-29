@@ -3,6 +3,8 @@ import time
 from pathlib import Path
 import multiprocessing as mp
 import os 
+import socket
+import base64
 
 import cv2
 import torch
@@ -24,7 +26,7 @@ nombres_conocidos = []
 font = ''
 
 
-def detect(opt, child_conn, lock, save_img=False):
+def detect(opt, child_conn, lock, servSocket, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -203,7 +205,13 @@ def detect(opt, child_conn, lock, save_img=False):
             # Print time (inference + NMS)
             #print(f'{s}Done. ({t2 - t1:.3f}s)')
 
-            # Stream results
+            # Stream results into web
+            if servSocket:
+                servSocket
+                servSocket.videoToServer(im0)
+
+            
+            
             if view_img:
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
@@ -237,7 +245,18 @@ def detect(opt, child_conn, lock, save_img=False):
 
     print(f'Done. ({time.time() - t0:.3f}s)')
     
+class Socket:
+    HOST = '127.0.0.1'
+    PORT = 5555
+    s = None
+    def __init__(self):
+        self.s = socket.socket()
+        self.s.connect((self.HOST, self.PORT))
 
+    def videoToServer(self, image):
+        encoded, buffer = cv2.imencode('.jpg', image)
+        jpg_as_text = base64.b64encode(buffer)
+        self.s.sendall(jpg_as_text)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -258,6 +277,8 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--createEncodings', type=str, default='0', help='create encodings 1, or not encodings 0')   
+    parser.add_argument('--streamServer', type=str, default='0', help='stream to web server')   
+
     opt = parser.parse_args()
     print(opt)
 
@@ -269,6 +290,12 @@ if __name__ == '__main__':
     else:
         print('\nNo new creation of encodings\n')
 
+
+    if(opt.streamServer == '1'):
+        print('\nStream de video online\n')
+        servSocket = Socket()
+    else:
+        servSocket = None
     
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
@@ -280,10 +307,11 @@ if __name__ == '__main__':
             parent_conn, child_conn = mp.Pipe()
             lock = mp.Lock()
 
-            yoloProcess = mp.Process(target=detect, args=(opt, child_conn,  lock,))
+            yoloProcess = mp.Process(target=detect, args=(opt, child_conn,  lock, servSocket,))
             yoloProcess.start()
             
             faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
             faceRecognitionProcess.start()
 
             yoloProcess.join()
+            faceRecognitionProcess.join()
