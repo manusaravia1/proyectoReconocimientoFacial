@@ -52,11 +52,6 @@ def isdocker():
     return Path('/workspace').exists()  # or Path('/.dockerenv').exists()
 
 
-def emojis(str=''):
-    # Return platform-dependent emoji-safe version of string
-    return str.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else str
-
-
 def check_online():
     # Check internet connectivity
     import socket
@@ -84,7 +79,7 @@ def check_git_status():
                 f"Use 'git pull' to update or 'git clone {url}' to download latest."
         else:
             s = f'up to date with {url} ✅'
-        print(emojis(s))  # emoji-safe
+        print(s.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else s)  # emoji-safe
     except Exception as e:
         print(e)
 
@@ -98,20 +93,13 @@ def check_requirements(file='requirements.txt', exclude=()):
         print(f"{prefix} {file.resolve()} not found, check failed.")
         return
 
-    n = 0  # number of packages updates
     requirements = [f'{x.name}{x.specifier}' for x in pkg.parse_requirements(file.open()) if x.name not in exclude]
     for r in requirements:
         try:
             pkg.require(r)
         except Exception as e:  # DistributionNotFound or VersionConflict if requirements not met
-            n += 1
-            print(f"{prefix} {e.req} not found and is required by YOLOv5, attempting auto-update...")
+            print(f"{prefix} {e.req} not found and is required by YOLOv5, attempting auto-install...")
             print(subprocess.check_output(f"pip install '{e.req}'", shell=True).decode())
-
-    if n:  # if packages updated
-        s = f"{prefix} {n} package{'s' * (n > 1)} updated per {file.resolve()}\n" \
-            f"{prefix} ⚠️ {colorstr('bold', 'Restart runtime or rerun command for updates to take effect')}\n"
-        print(emojis(s))  # emoji-safe
 
 
 def check_img_size(img_size, s=32):

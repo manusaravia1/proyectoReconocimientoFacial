@@ -6,6 +6,7 @@ import face_recognition
 from filters import *
 from PIL import Image
 
+
 def createEncondings():  # Creamos los encodings si es necesario
     global nombres_conocidos
     nombres_conocidos = []
@@ -14,26 +15,22 @@ def createEncondings():  # Creamos los encodings si es necesario
     global encodings_conocidos
     encodings_conocidos = []
 
-
-    #for filename in glob.glob('/samples/faces/*'):
-        #Image.open(filename).convert('RGB').save('/samples/faces/' + filename.split('/')[-1].split('.')[0] + '.jpg')
-
+    # for filename in glob.glob('/samples/faces/*'):
+    # Image.open(filename).convert('RGB').save('/samples/faces/' + filename.split('/')[-1].split('.')[0] + '.jpg')
 
     for filename in glob.glob('.\\samples\\faces\\*'):  # Carpeta donde se almacenan todas las imagenes
         # Lista con todos los nombres de las personas
-        nombres_conocidos.append(filename.split('\\')[-1].split('.')[0])                    
+        nombres_conocidos.append(filename.split('\\')[-1].split('.')[0])
         # Imagen de la persona
-        image = face_recognition.load_image_file(filename)    
-        #print(filename)
-        #cv2.imshow(filename.split('/')[-1].split('.')[0], image)
+        image = face_recognition.load_image_file(filename)
         # Lista con todas las imagenes
-        imagenes_deteccion.append(image)   
+        imagenes_deteccion.append(image)
         # Lista con los encodings de las imagenes                                                     
-        encodings_conocidos.append(face_recognition.face_encodings(image)[0])                   
+        encodings_conocidos.append(face_recognition.face_encodings(image)[0])
 
-    # Diccionario de los encodings con el nombre de la persona a almacenar
-    all_face_encodings = {}    
-    count = 0                                                                
+        # Diccionario de los encodings con el nombre de la persona a almacenar
+    all_face_encodings = {}
+    count = 0
     for name in nombres_conocidos:
         all_face_encodings[name] = encodings_conocidos[count]
         count += 1
@@ -41,18 +38,18 @@ def createEncondings():  # Creamos los encodings si es necesario
     with open('./dataset_faces.dat', 'wb') as f:
         pickle.dump(all_face_encodings, f)
 
+
 def loadEncondings():
     with open('./dataset_faces.dat', 'rb') as f:
         all_face_encodings = pickle.load(f)
-    
+
     # Recogemos los nombres y los encodings
     global nombres_conocidos
     nombres_conocidos = list(all_face_encodings.keys())
     global encodings_conocidos
     encodings_conocidos = np.array(list(all_face_encodings.values()))
     print('Users in encodigns:\n' + str(nombres_conocidos) + '\n')
-    global font
-    font = cv2.FONT_HERSHEY_COMPLEX
+
 
 def faceRecognitionLoop(parent_conn, lock):
     loadEncondings()
@@ -60,25 +57,24 @@ def faceRecognitionLoop(parent_conn, lock):
     newConn = 1
     while True:
         newConn = parent_conn.recv()
-            #print(newConn[0])
-            #if(newConn != oldConn):
-                #lock.acquire()
-                #try:
         persons = []
-        #print(type(newConn))
-        for person in newConn:        
-            persons.append(faceRecognition(person[0], person[1], person[2]))
-        print(persons)
-        #parent_conn.send(persons)    
-            #finally:
-                #lock.release()
+        for person in newConn[0]:
+            nombre = faceRecognition(person[0], person[1], person[2])
+            if nombre:
+                persons.append(nombre)
+            else:
+                persons.append(['???'])
+        persons2 = []
+        persons2.append(persons)
+        persons2.append(newConn[1])
+        parent_conn.send(persons2)
 
 
-def faceRecognition(face, x_crop, y_crop):   
-    #img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+def faceRecognition(face, x_crop, y_crop):
+    # img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
     img = face
-    #print(face)
-    #cv2.imshow('salchicha', img)
+    # print(face)
+    # cv2.imshow('salchicha', img)
     # Definir tres arrays, que servirán para guardar los parámetros de los rostros que se encuentren en la imagen:
     loc_rostros = []  # Localizacion de los rostros en la imagen (contendrá las coordenadas de los recuadros que las contienen)
     encodings_rostros = []  # Encodings de los rostros
@@ -86,24 +82,25 @@ def faceRecognition(face, x_crop, y_crop):
 
     # Localizamos cada rostro de la imagen y extraemos sus encodings:
     loc_rostros = face_recognition.face_locations(img, model='hog')
-    
+
     # Aplciamos distintos filtros a las imágenes
     h = len(face)
     w = len(face[0])
     pos_rostros = [[0 for j in range(4)] for i in range(len(loc_rostros))]
+
     for i in range(len(loc_rostros)):
         pos_rostros[i][0] = loc_rostros[i][3] + x_crop
         pos_rostros[i][1] = loc_rostros[i][0] + y_crop
         pos_rostros[i][2] = loc_rostros[i][1] - loc_rostros[i][3]
         pos_rostros[i][3] = loc_rostros[i][2] - loc_rostros[i][0]
-    if(len(loc_rostros) > 0):
+    if (len(loc_rostros) > 0):
         crop_face = face[loc_rostros[0][0]:loc_rostros[0][2], loc_rostros[0][3]:loc_rostros[0][1]]
-        #cv2.imshow("cropped", crop_face)
-        #new_cropped = contrast(crop_face) # Evitamos problemas de luminosidad
-        #cv2.imshow("contrast cropped", new_cropped)
-        #new_cropped = sharp(new_cropped)  # Generamos mejor contorno a la imagen  
-        #cv2.imshow("sharped cropped", new_cropped)
-        #cv2.imshow("New",newCropped)
+        # cv2.imshow("cropped", crop_face)
+        # new_cropped = contrast(crop_face) # Evitamos problemas de luminosidad
+        # cv2.imshow("contrast cropped", new_cropped)
+        # new_cropped = sharp(new_cropped)  # Generamos mejor contorno a la imagen
+        # cv2.imshow("sharped cropped", new_cropped)
+        # cv2.imshow("New",newCropped)
     # Filtros aplciados
 
     encodings_rostros = face_recognition.face_encodings(img, loc_rostros)
@@ -112,7 +109,7 @@ def faceRecognition(face, x_crop, y_crop):
     for encoding in encodings_rostros:
 
         # Buscamos si hay alguna coincidencia con algún encoding conocido:
-        coincidencias = face_recognition.compare_faces(encodings_conocidos, encoding)     # Paralelizar
+        coincidencias = face_recognition.compare_faces(encodings_conocidos, encoding)  # Paralelizar
 
         # El array 'coincidencias' es ahora un array de booleanos.
         # Si contiene algun 'True', es que ha habido alguna coincidencia:
