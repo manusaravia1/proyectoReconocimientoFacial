@@ -193,12 +193,13 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
 
             # Stream results into web
             if servSocket:
-                servSocket
+                # servSocket
                 servSocket.videoToServer(im0)
-
+                
             if view_img:
-                cv2.imshow(str(p), im0)
+                # cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
+                
 
             # Save results (image with detections)
             if save_img:
@@ -244,7 +245,7 @@ class Socket:
         self.s.sendall(jpg_as_text)
 
 
-def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEncodings = '0', streamServer = '0'):
+def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEncodings = '0', streamServer = '1'):
     check_requirements(exclude=('pycocotools', 'thop'))
 
     if createEncodings == '1' or not os.path.isfile('dataset_faces.dat'):
