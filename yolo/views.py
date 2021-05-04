@@ -168,7 +168,7 @@ def video(request):
 					cv2.destroyAllWindows()
 					break
 	cam = VideoCameraIp()
-	# cv2.imshow('image', cam.get_frame())
+	#  cv2.imshow('image', cam.get_frame())
 	
 
 """
