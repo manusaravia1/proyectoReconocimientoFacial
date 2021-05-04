@@ -232,7 +232,7 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
 
 class Socket:
     HOST = '127.0.0.1'
-    PORT = 5555
+    PORT = 8080
     s = None
 
     def __init__(self):
@@ -240,10 +240,13 @@ class Socket:
         self.s.connect((self.HOST, self.PORT))
 
     def videoToServer(self, image):
-        encoded, buffer = cv2.imencode('.jpg', image)
-        jpg_as_text = base64.b64encode(buffer)
-        self.s.sendall(jpg_as_text)
-
+        try:    
+            encoded, buffer = cv2.imencode('.jpg', image)
+            jpg_as_text = base64.b64encode(buffer)
+            self.s.sendall(jpg_as_text)
+        except:
+            pass
+            #print("Fallo en la conexion")
 
 def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEncodings = '0', streamServer = '1'):
     check_requirements(exclude=('pycocotools', 'thop'))

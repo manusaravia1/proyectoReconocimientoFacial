@@ -7,115 +7,8 @@ import base64
 import numpy as np
 import cv2
 import subprocess
-import time
 
 
-'''
-HOST = '' 
-PORT = 5555
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    s.listen(1)
-    print("Listening on port " + str(PORT))
-    conn, addr = s.accept()
-    with conn:
-        print('Connected by', addr)
-        while True:
-            try: 
-                frame = str(conn.recv(500000), 'utf-8')
-                if not frame: 
-                    break      
-                if (len(frame) > 100000):
-                    img = base64.b64decode(frame)
-                    npimg = np.frombuffer(img, dtype=np.uint8)
-                    source = cv2.imdecode(npimg, 1)
-                    if (isinstance(source, type(np.array([1])))):
-                        if (source.shape[0] > 1 and source.shape[1] > 1):
-                            cv2.imshow('image', source)
-                    cv2.waitKey(1)   
-            except KeyboardInterrupt:
-                cv2.destroyAllWindows()
-                break
-			'''
-
-def gen(camera):
-	while True:
-		frame = camera.get_frame()
-		yield (b'--frame\r\n'
-				b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-
-class VideoCamera(object):
-	def __init__(self):
-		self.video = cv2.VideoCapture(0)
-		
-	# def __del__(self):
-	#	self.video.release()
-
-	def get_frame(self):
-		success, image = self.video.read()
-		# We are using Motion JPEG, but OpenCV defaults to capture raw images,
-		# so we must encode it into JPEG in order to correctly display the
-		# video stream.
-		frame_flip = cv2.flip(image,1)
-		ret, jpeg = cv2.imencode('.jpg', frame_flip)
-		return jpeg.tobytes()
-
-class VideoCameraIp(object):
-	def __init__(self):
-		HOST = '' 
-		PORT = 5555
-		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-			s.bind((HOST, PORT))
-			s.listen(1)
-			print("Listening on port " + str(PORT))
-			# os.system("xterm -e \"python yolo/detect/detect.py\" &")
-			# subprocess.call_in_new_window('python yolo/detect/detect.py', shell=True)
-			# subprocess.call('python yolo/detect/detect.py', creationflags=subprocess.CREATE_NEW_CONSOLE)
-			subprocess.Popen("python yolo/detect/detect.py", shell=True)
-			print("111111111111111111111111111111111111111")
-			self.conn, addr = s.accept()
-			print("222222222222222222222222222222222222222")
-			with self.conn:
-				print('Connected by', addr)
-				try: 
-					frame = str(self.conn.recv(500000), 'utf-8')
-					if not frame:
-						return False
-					if (len(frame) > 100000):
-						img = base64.b64decode(frame)
-						npimg = np.frombuffer(img, dtype=np.uint8)
-						source = cv2.imdecode(npimg, 1)
-						if (isinstance(source, type(np.array([1])))):
-							if (source.shape[0] > 1 and source.shape[1] > 1):
-								cv2.imshow('image', source)
-								ret, jpeg = cv2.imencode('.jpg', source)
-								return jpeg.tobytes()
-				except KeyboardInterrupt:
-					cv2.destroyAllWindows()
-					return False
-
-			time.sleep(10000)
-			print("333333333333333333333333333333333333333")
-				
-	
-	def get_frame(self):
-		with self.conn:
-			try: 
-				frame = str(self.conn.recv(500000), 'utf-8')
-				if not frame:
-					return False
-				if (len(frame) > 100000):
-					img = base64.b64decode(frame)
-					npimg = np.frombuffer(img, dtype=np.uint8)
-					source = cv2.imdecode(npimg, 1)
-					if (isinstance(source, type(np.array([1])))):
-						if (source.shape[0] > 1 and source.shape[1] > 1):
-							cv2.imshow('image', source)
-							ret, jpeg = cv2.imencode('.jpg', source)
-							return jpeg.tobytes()
-			except KeyboardInterrupt:
-				cv2.destroyAllWindows()
-				return False
 
 # Create your views here.
 def webcam():
@@ -138,14 +31,12 @@ def ip(request):
     # detect.bridge()
     return render(request, 'yolo/ip.html', {'title': 'Ip'})
 
-def video(request):
-    # webcam()
-	# return StreamingHttpResponse(gen(VideoCameraIp()), content_type='multipart/x-mixed-replace; boundary=frame')
-	HOST = '' 
-	PORT = 5555
+def videoToSend():
+	HOST = '127.0.0.1' 
+	PORT = 8080
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 		s.bind((HOST, PORT))
-		s.listen(1)
+		s.listen(10)
 		print("Listening on port " + str(PORT))
 		subprocess.Popen("python yolo/detect/detect.py", shell=True)
 		conn, addr = s.accept()
@@ -153,22 +44,24 @@ def video(request):
 			print('Connected by', addr)
 			while True:
 				try: 
-					frame = str(conn.recv(500000), 'utf-8')
+					frame = str(conn.recv(300000), 'utf-8')
 					if not frame: 
 						break      
-					if (len(frame) > 100000):
-						img = base64.b64decode(frame)
-						npimg = np.frombuffer(img, dtype=np.uint8)
-						source = cv2.imdecode(npimg, 1)
-						if (isinstance(source, type(np.array([1])))):
-							if (source.shape[0] > 1 and source.shape[1] > 1):
-								cv2.imshow('image', source)
+					#if (len(frame) > 100000):
+					img = base64.b64decode(frame)
+					npimg = np.frombuffer(img, dtype=np.uint8)
+					source = cv2.imdecode(npimg, 1)
+					if (isinstance(source, type(np.array([1])))):
+						if (source.shape[0] > 1 and source.shape[1] > 1):
+							yield (b'--frame\r\n'
+									b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n\r\n')
 						cv2.waitKey(1)   
 				except KeyboardInterrupt:
 					cv2.destroyAllWindows()
 					break
-	cam = VideoCameraIp()
-	#  cv2.imshow('image', cam.get_frame())
+
+def video(request):
+	return StreamingHttpResponse(videoToSend(), content_type='multipart/x-mixed-replace; boundary=frame')
 	
 
 """
