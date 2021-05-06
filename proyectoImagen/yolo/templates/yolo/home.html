@@ -1,0 +1,23 @@
+{% extends 'yolo/base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static "yolo/home.css" %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    <h3>Subir un archivo para identificar</h3>
+    <br>
+    <form method="post" enctype="multipart/form-data">
+        <!--{% csrf_token %}-->
+        <input type="file" name="file">
+        <br>
+        <button type="submit"><a>Subir archivo</a></button>
+    </form>
+    <br>
+    <h3>Usar una ip para identificar</h3>
+    <br>
+    <a class="enlace" href="{% url 'yolo-ip' %}">Usar ip</a>
+</content>
+{% endblock %}

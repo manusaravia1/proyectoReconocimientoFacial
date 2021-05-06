@@ -1,0 +1,16 @@
+{% extends 'yolo/base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static "yolo/home.css" %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    <img src="{% url 'video' %}">
+    <br><br><br>
+    <input type="text">
+    <br>
+    <button>Ir</button>
+</content>
+{% endblock %}
