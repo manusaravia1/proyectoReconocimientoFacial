@@ -297,4 +297,8 @@ def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEn
         faceRecognitionProcess.join()
 
 if __name__ == "__main__":
-    bridge()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=str, default='data/images', help='source')
+    opt = parser.parse_args()
+    print(opt)
+    bridge(obj_source = opt.source)

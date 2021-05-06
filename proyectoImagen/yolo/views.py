@@ -7,7 +7,7 @@ import base64
 import numpy as np
 import cv2
 import subprocess
-
+import os
 
 
 # Create your views here.
@@ -30,6 +30,50 @@ def home(request):
 def ip(request):
     # detect.bridge()
     return render(request, 'yolo/ip.html', {'title': 'Ip'})
+
+class IPWebCam():
+	def __init__(self):	
+		self.HOST = '127.0.0.1' 
+		self.PORT = 8080
+
+	def __del__(self):
+		print(self.proceso.poll())
+		print("Morisiooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooon")
+		os.kill(self.proceso.pid, 1)
+
+
+	def get_frame(self, ipwebcam):
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+			s.bind((self.HOST,self.PORT))
+			s.listen(10)
+			print("Listening on port " + str(self.PORT))
+			llamada = "python yolo/detect/detect.py --source " + ipwebcam
+			print(llamada)
+			self.proceso = subprocess.Popen(llamada, shell=True)
+			print("--------------------------------------------------------")
+			conn, addr = s.accept()
+			with conn:
+				print('Connected by', addr)
+				while True:
+					try: 
+						frame = str(conn.recv(300000), 'utf-8')
+						if not frame: 
+							break      
+						#if (len(frame) > 100000):
+						img = base64.b64decode(frame)
+						npimg = np.frombuffer(img, dtype=np.uint8)
+						print("--------------------------------------------------------")
+						print(self.proceso.poll())
+						source = cv2.imdecode(npimg, 1)
+						if (isinstance(source, type(np.array([1])))):
+							if (source.shape[0] > 1 and source.shape[1] > 1):
+								yield (b'--frame\r\n'
+										b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n\r\n')
+							cv2.waitKey(1)   
+					except KeyboardInterrupt:
+						cv2.destroyAllWindows()
+						break
+
 
 def videoToSend():
 	HOST = '127.0.0.1' 
@@ -61,7 +105,8 @@ def videoToSend():
 					break
 
 def video(request):
-	return StreamingHttpResponse(videoToSend(), content_type='multipart/x-mixed-replace; boundary=frame')
+	d = IPWebCam()
+	return StreamingHttpResponse(d.get_frame('http://192.168.246.170:8080/video'), content_type='multipart/x-mixed-replace; boundary=frame')
 	
 
 """
