@@ -6,7 +6,7 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin', admin.site.urls),
-    path('video', views.video, name='video'),
+    path('video/<path:ip>', views.video, name='video'),
     path('', views.home, name='home'),
     path('ip', views.ip, name='ip'),
     path('upload', views.upload, name='upload'),

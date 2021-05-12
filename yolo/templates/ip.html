@@ -7,12 +7,16 @@
 
 {% block content %}
 <content>
-    <img src="{% url 'video' %}">
+    {% if ip %}
+    <img src="/video/{{ ip }}">
     <br><br><br>
-    <form action="" method="post">
-        <input type="text">
-        <br>
-        <button>Ir</button>
+    <a class="enlace" href="{% url 'ip' %}">Nueva ip</a>
+    {% else %}
+    <form action="{% url 'ip' %}" method="post">
+        {% csrf_token %}
+        {{ form }}
+        <p><button type="submit">Upload</button></p>
     </form>
-    </content>
+    {% endif %}
+</content>
 {% endblock %}

@@ -12,9 +12,10 @@ import subprocess
 import signal
 import os
 import shutil
+import time
 import platform
 from .models import Document
-from .forms import DocumentForm
+from .forms import DocumentForm, IpForm
 
 
 class IPWebCam():
@@ -59,10 +60,15 @@ class IPWebCam():
 						break
 
 def home(request):
-    return render(request, 'home.html', {'title': 'Home'})
+	return render(request, 'home.html', {'title': 'Home'})
 
 def ip(request):
-    return render(request, 'ip.html', {'title': 'Ip'})
+	if request.method=='POST':
+		form = IpForm(request.POST)
+		if form.is_valid():
+			return render(request, 'ip.html', {'title': 'Home','ip': form.cleaned_data['ip'], 'form':IpForm()})
+	else:
+		return render(request, 'ip.html', {'title': 'Ip', 'form':IpForm()})
 
 def upload(request):
 	message = 'Bien'
@@ -92,6 +98,8 @@ def upload(request):
 	return render(request, 'list.html', context)
 
 
-def video(request):
-	d = IPWebCam()
-	return StreamingHttpResponse(d.get_frame('http://192.168.246.170:8080/video'), content_type='multipart/x-mixed-replace; boundary=frame')
+def video(request, ip):
+	if ip:
+		# time.sleep(3)
+		d = IPWebCam()
+		return StreamingHttpResponse(d.get_frame(ip), content_type='multipart/x-mixed-replace; boundary=frame')

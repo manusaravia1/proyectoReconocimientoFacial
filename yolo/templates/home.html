@@ -15,6 +15,11 @@
     
     <h3>Usar una ip para identificar</h3>
     <br>
+    <!-- <form action="{% url 'home' %}" method="post">
+        {% csrf_token %}
+        {{ form }}
+        <p><button type="submit">Upload</button></p>
+    </form> -->
     <a class="enlace" href="{% url 'ip' %}">Usar ip</a>
 </content>
 {% endblock %}
