@@ -24,16 +24,16 @@ from faceRecognition import *
 imagenes_deteccion = []
 encodings_conocidos = []
 nombres_conocidos = []
-font = ''
+font = cv2.FONT_HERSHEY_COMPLEX
 
 
-def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save_img=False):
+def detect(obj_source, child_conn, lock, servSocket, save_img=False):
     source, weights, view_img, save_txt, imgsz = obj_source, 'yolov5s.pt', False, False, 640
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
 
     # Directories
-    save_dir = Path(increment_path(Path(obj_project) / obj_name, exist_ok=False))  # increment run
+    save_dir = Path("media\exp")  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Initialize
@@ -70,10 +70,16 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
 
     last_box = []
     actual_box = []
+    actual_distances = []
+    actual_coordinates = []
 
     last_ids = []
     actual_ids = []
     max_id = 0
+
+    last_dir = []
+    actual_dir = []
+
     last_names = []
     actual_names = []
 
@@ -130,54 +136,106 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
 
                     p1 = (int(xywh[0][0]), int(xywh[0][1]))
                     p2 = (int(xywh[0][2]), int(xywh[0][3]))
-                    color = (255, 0, 0)
 
                     person_id = -1
                     person_name = "???"
+                    direction = (0, 0)
+                    distance_to_box = -1
 
                     for person in range(len(last_box)):
                         l1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
                         l2 = (int(last_box[person][0][2]), int(last_box[person][0][3]))
 
-                        dist1 = math.sqrt(((l1[0] - p1[0]) ** 2) + ((l1[1] - p1[1]) ** 2))
-                        dist2 = math.sqrt(((l2[0] - p2[0]) ** 2) + ((l2[1] - p2[1]) ** 2))
+                        center1 = (int((p1[0] + p2[0]) / 2), int((p1[1] + p2[1]) / 2))
+                        center2 = (int((l1[0] + l2[0]) / 2), int((l1[1] + l2[1]) / 2))
+                        center3 = (center2[0] + last_dir[person][0], center2[1] + last_dir[person][1])
 
-                        if dist1 + dist2 < 60:
-                            person_id = last_ids[person]
-                            person_name = last_names[person]
-                            break
+                        dist = math.sqrt(((center1[0] - center3[0]) ** 2) + ((center1[1] - center3[1]) ** 2))
+
+                        if dist < im0.shape[1]/5:
+
+                            if last_names[person] not in actual_names:
+
+                                person_id = last_ids[person]
+                                person_name = last_names[person]
+                                distance_to_box = dist
+
+                                direction = (int(center1[0] - center2[0]), int(center1[1] - center2[1]))
+                                break
+
+                            else:
+
+                                other_index = actual_names.index(last_names[person])
+
+                                if dist < actual_distances[other_index]:
+
+                                    person_id = last_ids[person]
+                                    person_name = last_names[person]
+                                    distance_to_box = dist
+
+                                    direction = (int(center1[0] - center2[0]), int(center1[1] - center2[1]))
+
+                                    actual_box.pop(other_index)
+                                    actual_ids.pop(other_index)
+                                    actual_names.pop(other_index)
+                                    actual_dir.pop(other_index)
+                                    actual_distances.pop(other_index)
+
+                                else:
+                                    max_id += 1
+                                    person_id = max_id
+                                    person_name = "???"
+
+                                    if max_id > 9999: max_id = 0
+
+                                break
+
                         else:
                             # person_id = max(actual_ids, default=0)+1
                             max_id += 1
                             person_id = max_id
                             person_name = "???"
 
-                            if max_id > 9999:
-                                max_id = 0
+                            if max_id > 9999: max_id = 0
 
-                    im0 = cv2.rectangle(im0, p1, p2, color, thickness=2)
-                    cv2.putText(im0, person_name, (int(xywh[0][0]) + 2, int(xywh[0][1]) + 20), cv2.FONT_HERSHEY_COMPLEX,
-                                0.5, color, 1)
 
-                    # l_ids.append(person_id)
                     actual_box.append(xywh)
                     actual_ids.append(person_id)
                     actual_names.append(person_name)
+                    actual_dir.append(direction)
+                    actual_distances.append(distance_to_box)
+                    actual_coordinates.append(xywh[0])
+
+                for person in range(len(actual_ids)):
+                    if (actual_names[person] != "???"):
+                        color = (0, 255, 0)
+                    else:
+                        color = (255, 0, 0)
+
+                    p1 = (int(actual_coordinates[person][0]), int(actual_coordinates[person][1]))
+                    p2 = (int(actual_coordinates[person][2]), int(actual_coordinates[person][3]))
+
+                    im0 = cv2.rectangle(im0, p1, p2, color, thickness=2)
+                    cv2.putText(im0, actual_names[person], (int(actual_coordinates[person][0]) + 2, int(actual_coordinates[person][1]) + 20), font, 0.5, color, 1)
+                    cv2.putText(im0, str(actual_dir[person]), (int(actual_coordinates[person][2]) - 80, int(actual_coordinates[person][1]) + 20), font, 0.5, color, 1)
 
                 # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
 
                 last_box = []
                 last_ids = []
                 last_names = []
+                last_dir = []
+                actual_coordinates = []
 
                 for person in actual_box: last_box.append(person)
                 for person in actual_ids: last_ids.append(person)
                 for person in actual_names: last_names.append(person)
+                for person in actual_dir: last_dir.append(person)
 
                 lock.acquire()
                 try:
                     child_conn.send([cropped_images, actual_ids])
-                    personas = child_conn.recv()  # siempre tiene que recivir
+                    personas = child_conn.recv()  # siempre tiene que recibir
                     for i in range(len(personas[0])):
                         if personas[0][i][0] != "???":
                             indexPersons = last_ids.index(personas[1][i])
@@ -186,6 +244,7 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
                     actual_box = []
                     actual_ids = []
                     actual_names = []
+                    actual_dir = []
                     lock.release()
 
             # Print time (inference + NMS)
@@ -197,7 +256,7 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
                 servSocket.videoToServer(im0)
                 
             if view_img:
-                # cv2.imshow(str(p), im0)
+                cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
                 
 
@@ -229,7 +288,6 @@ def detect(obj_source, obj_project, obj_name, child_conn, lock, servSocket, save
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
-
 class Socket:
     HOST = '127.0.0.1'
     PORT = 8080
@@ -248,16 +306,23 @@ class Socket:
             pass
             #print("Fallo en la conexion")
 
-def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEncodings = '0', streamServer = '1'):
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=str, default='0', help='source')
+    parser.add_argument('--streamServer', type=str, default='0', help='source')
+    parser.add_argument('--createEncodings', type=str, default='0', help='source')
+    opt = parser.parse_args()
+
     check_requirements(exclude=('pycocotools', 'thop'))
 
-    if createEncodings == '1' or not os.path.isfile('dataset_faces.dat'):
+    if opt.createEncodings == '1' or not os.path.isfile('dataset_faces.dat'):
         print('\nCreation of encodings\n')
         createEncondings()
     else:
         print('\nNo new creation of encodings\n')
 
-    if streamServer == '1':
+    if opt.streamServer == '1':
         print('\nStream de video online\n')
         servSocket = Socket()
     else:
@@ -267,14 +332,47 @@ def bridge(obj_source = '0', obj_project='runs/detect', obj_name='exp', createEn
         parent_conn, child_conn = mp.Pipe()
         lock = mp.Lock()
 
-        yoloProcess = mp.Process(target=detect, args=(obj_source, obj_project, obj_name, child_conn, lock, servSocket,))
+        yoloProcess = mp.Process(target=detect, args=(opt.source, child_conn, lock, servSocket,))
         yoloProcess.start()
 
         faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
         faceRecognitionProcess.start()
-
         yoloProcess.join()
+        print("-------------------------yolo")
+        faceRecognitionProcess.terminate()
         faceRecognitionProcess.join()
+        print("-------------------------face")
 
-if __name__ == "__main__":
-    bridge()
+    # if opt.source == '0':
+    #     opt.source = 'http://192.168.246.170:8080/video'
+
+
+# def bridge(obj_source = '0', createEncodings = '0', streamServer = '0'):
+#     check_requirements(exclude=('pycocotools', 'thop'))
+
+#     if createEncodings == '1' or not os.path.isfile('dataset_faces.dat'):
+#         print('\nCreation of encodings\n')
+#         createEncondings()
+#     else:
+#         print('\nNo new creation of encodings\n')
+
+#     if streamServer == '1':
+#         print('\nStream de video online\n')
+#         servSocket = Socket()
+#     else:
+#         servSocket = None
+    
+#     with torch.no_grad():    
+#         parent_conn, child_conn = mp.Pipe()
+#         lock = mp.Lock()
+
+#         yoloProcess = mp.Process(target=detect, args=(obj_source, child_conn, lock, servSocket,))
+#         yoloProcess.start()
+
+#         faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
+#         faceRecognitionProcess.start()
+
+#         yoloProcess.join()
+#         faceRecognitionProcess.join()
+    
+#     return

@@ -109,7 +109,7 @@ def faceRecognition(face, x_crop, y_crop):
     for encoding in encodings_rostros:
 
         # Buscamos si hay alguna coincidencia con algún encoding conocido:
-        coincidencias = face_recognition.compare_faces(encodings_conocidos, encoding)  # Paralelizar
+        coincidencias = face_recognition.compare_faces(encodings_conocidos, encoding, tolerance=0.5)  # Paralelizar
 
         # El array 'coincidencias' es ahora un array de booleanos.
         # Si contiene algun 'True', es que ha habido alguna coincidencia:

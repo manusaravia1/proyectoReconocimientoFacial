@@ -1,5 +1,6 @@
 from django.db import models
 
-# Create your models here.
-class File(models.Model):
-    file = models.FileField()
+
+class Document(models.Model):
+    subida = models.FileField(upload_to='sin')
+    ruta = models.TextField

@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>{{ title }}</title>
+    <!--<link rel="shortcut icon" href="">-->
+
+    <!-- Metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Custom CSS  
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald&family=Poppins&display=swap" rel="stylesheet"> -->
+    <link rel="stylesheet" type="text/css" href="{% static 'base.css' %}">
+    {% block extrahead %}{% endblock %}
+</head>
+
+<body>
+	<header>
+        <div class="box-header">
+            <!--
+                
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="31.69" viewBox="0 0 34 31.69">
+                <g id="Grupo_13" data-name="Grupo 13" transform="translate(-3301.967 -2892.31)">
+                  <circle id="Elipse_4" data-name="Elipse 4" cx="9" cy="9" r="9" transform="translate(3310 2899)" fill="#770101"/>
+                  <path id="Trazado_27" data-name="Trazado 27" d="M3307.4,2889.31h-11.43V2917h0v-27.69Z" transform="translate(8 5)" fill="none" stroke="#e6e6e6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+                  <path id="Trazado_28" data-name="Trazado 28" d="M3295.967,2889.31h11.707V2917h0v-27.69Z" transform="translate(26.293 5)" fill="none" stroke="#e6e6e6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+                </g>
+              </svg>
+              
+            -->
+                            
+            <h1>
+              <a href="{% url 'home' %}"> Proyecto Imagen</a>
+            </h1>
+        </div>
+	</header>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+</body>
+</html>

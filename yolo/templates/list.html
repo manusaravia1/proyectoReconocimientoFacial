@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+{% endblock %}
+{% block content %}
+<content>
+    <!-- Upload form. Note enctype attribute! -->
+    <form action="{% url 'upload' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!-- <h3>{{ message }}</h3>  -->
+        <p>{{ form.non_field_errors }}</p>
+
+        <h3>{{ form.subida.label_tag }} {{ form.subida.help_text }}</h3>
+
+        <p>
+            {{ form.subida.errors }}
+            {{ form.subida }}
+        </p>
+
+        <p><button type="submit">Upload</button></p>
+    </form>
+
+    {% if detectado_nombre %}
+        <h3>Archivo detectado:</h3>
+        <a href="{{ detectado_url }}">{{ detectado_nombre }}</a>
+    {% else %}
+        <h3>No documents.</h3>
+    {% endif %}
+
+</content>
+{% endblock %}

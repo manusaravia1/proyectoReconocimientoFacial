@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    <img src="{% url 'video' %}">
+    <br><br><br>
+    <form action="" method="post">
+        <input type="text">
+        <br>
+        <button>Ir</button>
+    </form>
+    </content>
+{% endblock %}
