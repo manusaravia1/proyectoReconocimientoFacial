@@ -256,7 +256,7 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                 servSocket.videoToServer(im0)
                 
             if view_img:
-                cv2.imshow(str(p), im0)
+                # cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
                 
 
@@ -332,7 +332,7 @@ if __name__ == "__main__":
         parent_conn, child_conn = mp.Pipe()
         lock = mp.Lock()
 
-        yoloProcess = mp.Process(target=detect, args=(opt.source, child_conn, lock, servSocket,))
+        yoloProcess = mp.Process(target=detect, args=('0', child_conn, lock, servSocket,))
         yoloProcess.start()
 
         faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
