@@ -6,7 +6,6 @@
 {% endblock %}
 {% block content %}
 <content>
-    <!-- Upload form. Note enctype attribute! -->
     <form action="{% url 'upload' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <!-- <h3>{{ message }}</h3>  -->
@@ -24,7 +23,7 @@
 
     {% if detectado_nombre %}
         <h3>Archivo detectado:</h3>
-        <a href="{{ detectado_url }}">{{ detectado_nombre }}</a>
+        <a href="{{ detectado_url }}" download>{{ detectado_nombre }}</a>
     {% else %}
         <h3>No documents.</h3>
     {% endif %}

@@ -332,7 +332,7 @@ if __name__ == "__main__":
         parent_conn, child_conn = mp.Pipe()
         lock = mp.Lock()
 
-        yoloProcess = mp.Process(target=detect, args=('0', child_conn, lock, servSocket,))
+        yoloProcess = mp.Process(target=detect, args=(opt.source, child_conn, lock, servSocket,))
         yoloProcess.start()
 
         faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))

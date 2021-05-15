@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    <form action="{% url 'id' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <p>
+            {{ form.img.errors }}
+            {{ form.img }}
+        </p>
+        <p><button type="submit">Añadir</button></p>
+    </form>
+</content>
+{% endblock %}

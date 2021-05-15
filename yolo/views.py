@@ -14,8 +14,8 @@ import os
 import shutil
 import time
 import platform
-from .models import Document
-from .forms import DocumentForm, IpForm
+from .models import Document, FaceDocument
+from .forms import DocumentForm, IpForm, IdForm
 
 
 class IPWebCam():
@@ -81,9 +81,7 @@ def upload(request):
 			nombre = request.FILES['subida'].name
 			newfile.save()
 			llamada = "python yolo/detect/detect.py --source media/sin/" + nombre
-			proceso = subprocess.Popen(llamada, stdout=subprocess.PIPE, shell=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
-			print(proceso.poll())
-			proceso.wait()
+			subprocess.run(llamada, shell=True)
 			if os.path.exists("media/sin/"):
 				shutil.rmtree("media/sin/")
 			detectado_url = "media/exp/" + nombre
@@ -98,8 +96,20 @@ def upload(request):
 	return render(request, 'list.html', context)
 
 
+def id(request):
+	if request.method == 'POST':
+		if os.path.exists("dataset_faces.dat"):
+			os.remove("dataset_faces.dat")
+		form = IdForm(request.POST, request.FILES)
+		if form.is_valid():
+			FaceDocument(faces=request.FILES['img']).save()
+			return redirect ('home')
+	
+	return render(request, 'id.html',{'form':IdForm()})
+
+
+
 def video(request, ip):
 	if ip:
-		# time.sleep(3)
 		d = IPWebCam()
 		return StreamingHttpResponse(d.get_frame(ip), content_type='multipart/x-mixed-replace; boundary=frame')
