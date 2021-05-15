@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    <h3>Subir un archivo para identificar</h3>
+    <br>
+    <a class="enlace" href="{% url 'upload' %}">Subir archivo</a>
+    
+    <br><br><br><br>
+    
+    <h3>Usar una ip para identificar</h3>
+    <br>
+    <a class="enlace" href="{% url 'ip' %}">Usar ip</a>
+</content>
+{% endblock %}

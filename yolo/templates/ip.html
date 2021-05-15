@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+{% endblock %}
+
+{% block content %}
+<content>
+    {% if ip %}
+    <img src="/video/{{ ip }}">
+    <br><br><br>
+    <a class="enlace" href="{% url 'ip' %}">Nueva ip</a>
+    {% else %}
+    <form action="{% url 'ip' %}" method="post">
+        {% csrf_token %}
+        {{ form }}
+        <p><button type="submit">Upload</button></p>
+    </form>
+    {% endif %}
+</content>
+{% endblock %}

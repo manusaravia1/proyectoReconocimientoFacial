@@ -1,3 +1,8 @@
 # proyectoImagen
 Asignatura de proyectos 4 de mención data.
-Detección y clasificación de personas.
+
+## Integrantes
+- Julio Robles
+- Jorge de Santiago
+- Luis Crespo
+- Manuel Saravia
