@@ -12,12 +12,28 @@ from PIL import ImageFilter
 from imutils.face_utils import FaceAligner
 from imutils.face_utils import rect_to_bb
 
+'''
+def brightness(image):
+    new_image = image.copy()
+    coefficient = 50
+
+    h, w, c = image.shape
+
+    for x in range(w):
+        for y in range(h):
+            for c in range(3):
+                new_image[x,y][c] += coefficient
+                if new_image[x,y][c] > 255:
+                    new_image[x, y][c] = 255
+
+    return new_image
+
 
 def contrast(image):
     new_image = image.copy()
-    coefficient = 0.8
+    coefficient = 1.2
 
-    w, h, c = image.shape
+    h, w, c = image.shape
 
     avg = 0
     for x in range(w):
@@ -26,17 +42,8 @@ def contrast(image):
             avg += (float(r / 3) + float(g / 3) + float(b / 3))
 
     avg /= w * h
-
     palette = []
     for i in range(256):
-
-        if i > 180:
-            coefficient = (255 - i) * 0.0066 + 0.5
-        else:
-            coefficient = 1
-
-        if avg > 170 and i < 100:
-            coefficient = 1.5
 
         temp = int(avg + coefficient * (i - avg))
         if temp < 0:
@@ -54,13 +61,20 @@ def contrast(image):
 
 
 def sharp(image):
-    # Open an already existing image
+
     kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
     sharpened = cv2.filter2D(image, -1, kernel)
 
     return sharpened
 
+def blur(image):
 
+    kernel = np.array([[1/9, 1/9, 1/9], [1/9, 1/9, 1/9], [1/9, 1/9, 1/9]])
+    blurred = cv2.filter2D(image, -1, kernel)
+
+    return blurred
+'''
+'''
 def align(image):  # NO APLICAR
 
     detector = dlib.get_frontal_face_detector()
@@ -71,54 +85,4 @@ def align(image):  # NO APLICAR
     desiredFaceHeight = 256
 
     image = imutils.resize(image, width=800)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    rect = detector(gray, 2)
-
-    if (len(rect) > 0):
-        rect = rect[0]
-
-    (x, y, w, h) = rect_to_bb(rect)
-    faceOrig = imutils.resize(image[y:y + h, x:x + w], width=256)
-
-    shape = predictor(gray, rect)
-
-    coords = np.zeros((68, 2), dtype="int")
-    for i in range(0, 68):
-        coords[i] = (shape.part(i).x, shape.part(i).y)
-
-    shape = coords
-
-    # faceAligned = fa.align(image, gray, rect)
-    # display the output images
-    # cv2.imshow("Original", faceOrig)
-    # cv2.imshow("Aligned", faceAligned)
-    # cv2.waitKey(0)
-
-    (lStart, lEnd) = FACIAL_LANDMARKS_IDXS["left_eye"]
-    (rStart, rEnd) = FACIAL_LANDMARKS_IDXS["right_eye"]
-    leftEyePts = shape[lStart:lEnd]
-    rightEyePts = shape[rStart:rEnd]
-
-    leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
-    rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
-    dY = rightEyeCenter[1] - leftEyeCenter[1]
-    dX = rightEyeCenter[0] - leftEyeCenter[0]
-    angle = np.degrees(np.arctan2(dY, dX)) - 180
-
-    desiredRightEyeX = 1.0 - desiredLeftEye[0]
-    dist = np.sqrt((dX ** 2) + (dY ** 2))
-    desiredDist = (desiredRightEyeX - desiredLeftEye[0])
-    desiredDist *= desiredFaceWidth
-    scale = desiredDist / dist
-
-    eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
-    M = cv2.getRotationMatrix2D(eyesCenter, angle, scale)
-    tX = desiredFaceWidth * 0.5
-    tY = desiredFaceHeight * desiredLeftEye[1]
-    M[0, 2] += (tX - eyesCenter[0])
-    M[1, 2] += (tY - eyesCenter[1])
-
-    (w, h) = (desiredFaceWidth, desiredFaceHeight)
-    output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
-    return output
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)'''

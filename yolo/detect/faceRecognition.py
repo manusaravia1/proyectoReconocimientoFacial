@@ -73,12 +73,14 @@ def faceRecognitionLoop(parent_conn, lock):
 def faceRecognition(face, x_crop, y_crop):
     # img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
     img = face
-    # print(face)
-    # cv2.imshow('salchicha', img)
     # Definir tres arrays, que servirán para guardar los parámetros de los rostros que se encuentren en la imagen:
     loc_rostros = []  # Localizacion de los rostros en la imagen (contendrá las coordenadas de los recuadros que las contienen)
     encodings_rostros = []  # Encodings de los rostros
     nombres_rostros = []  # Nombre de la persona de cada rostro
+
+    print(str(face.shape) + "\n")
+
+    #img_blurred = blur(img)
 
     # Localizamos cada rostro de la imagen y extraemos sus encodings:
     loc_rostros = face_recognition.face_locations(img, model='hog')
@@ -95,13 +97,11 @@ def faceRecognition(face, x_crop, y_crop):
         pos_rostros[i][3] = loc_rostros[i][2] - loc_rostros[i][0]
     if (len(loc_rostros) > 0):
         crop_face = face[loc_rostros[0][0]:loc_rostros[0][2], loc_rostros[0][3]:loc_rostros[0][1]]
-        # cv2.imshow("cropped", crop_face)
-        # new_cropped = contrast(crop_face) # Evitamos problemas de luminosidad
-        # cv2.imshow("contrast cropped", new_cropped)
-        # new_cropped = sharp(new_cropped)  # Generamos mejor contorno a la imagen
-        # cv2.imshow("sharped cropped", new_cropped)
-        # cv2.imshow("New",newCropped)
-    # Filtros aplciados
+
+
+    #img_filter = contrast(img)
+    #img_filter = brightness(img_filter)
+    #img_filter = sharp(img_filter)
 
     encodings_rostros = face_recognition.face_encodings(img, loc_rostros)
 

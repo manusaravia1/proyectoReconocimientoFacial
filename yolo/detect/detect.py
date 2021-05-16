@@ -5,6 +5,8 @@ import multiprocessing as mp
 import os
 import socket
 import base64
+import re
+import asyncio
 
 import cv2
 import torch
@@ -27,7 +29,7 @@ nombres_conocidos = []
 font = cv2.FONT_HERSHEY_COMPLEX
 
 
-def detect(obj_source, child_conn, lock, servSocket, save_img=False):
+def detect(obj_source, child_conn = False, lock = False, servSocket = False, save_img=False, is_image = False):
     source, weights, view_img, save_txt, imgsz = obj_source, 'yolov5s.pt', False, False, 640
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -130,8 +132,10 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                 for *xyxy, conf, cls in reversed(det):  # Paralelizacion
                     # Face recognition
                     xywh = torch.tensor(xyxy).view(1, 4).tolist()
-                    cropped_images.append([im0[int(xywh[0][1]):int(xywh[0][1]) + int(xywh[0][3]),
-                                           int(xywh[0][0]):int(xywh[0][0]) + int(xywh[0][2])], int(xywh[0][0]),
+                    cropped_images.append([im0[
+                                           int(xywh[0][1]):int(xywh[0][3]),
+                                           int(xywh[0][0]):int(xywh[0][2])],
+                                           int(xywh[0][0]),
                                            int(xywh[0][1])])
 
                     p1 = (int(xywh[0][0]), int(xywh[0][1]))
@@ -141,6 +145,11 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                     person_name = "???"
                     direction = (0, 0)
                     distance_to_box = -1
+
+                    if len(last_box) == 0:
+                        max_id += 1
+                        person_id = max_id
+                        person_name = "???"
 
                     for person in range(len(last_box)):
                         l1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
@@ -206,19 +215,6 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                     actual_distances.append(distance_to_box)
                     actual_coordinates.append(xywh[0])
 
-                for person in range(len(actual_ids)):
-                    if (actual_names[person] != "???"):
-                        color = (0, 255, 0)
-                    else:
-                        color = (255, 0, 0)
-
-                    p1 = (int(actual_coordinates[person][0]), int(actual_coordinates[person][1]))
-                    p2 = (int(actual_coordinates[person][2]), int(actual_coordinates[person][3]))
-
-                    im0 = cv2.rectangle(im0, p1, p2, color, thickness=2)
-                    cv2.putText(im0, actual_names[person], (int(actual_coordinates[person][0]) + 2, int(actual_coordinates[person][1]) + 20), font, 0.5, color, 1)
-                    cv2.putText(im0, str(actual_dir[person]), (int(actual_coordinates[person][2]) - 80, int(actual_coordinates[person][1]) + 20), font, 0.5, color, 1)
-
                 # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
 
                 last_box = []
@@ -235,7 +231,11 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                 lock.acquire()
                 try:
                     child_conn.send([cropped_images, actual_ids])
-                    personas = child_conn.recv()  # siempre tiene que recibir
+                    if is_image:
+                        personas = child_conn.recv().wait()
+                    else:
+                        personas = child_conn.recv()  # siempre tiene que recibir
+
                     for i in range(len(personas[0])):
                         if personas[0][i][0] != "???":
                             indexPersons = last_ids.index(personas[1][i])
@@ -246,6 +246,23 @@ def detect(obj_source, child_conn, lock, servSocket, save_img=False):
                     actual_names = []
                     actual_dir = []
                     lock.release()
+
+                for person in range(len(last_ids)):
+                    if (last_names[person] != "???"):
+                        color = (0, 255, 0)
+                    else:
+                        color = (255, 0, 0)
+
+                    p1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
+                    p2 = (int(last_box[person][0][2]), int(last_box[person][0][3]))
+
+                    im0 = cv2.rectangle(im0, p1, p2, color, thickness=2)
+                    cv2.putText(im0, last_names[person],
+                                (int(last_box[person][0][0]) + 2, int(last_box[person][0][1]) + 20), font,
+                                0.5, color, 1)
+                    cv2.putText(im0, str(last_ids[person]),
+                                (int(last_box[person][0][2]) - 80, int(last_box[person][0][1]) + 20), font,
+                                0.5, color, 1)
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -327,8 +344,15 @@ if __name__ == "__main__":
         servSocket = Socket()
     else:
         servSocket = None
+
+    print(opt.source)
+
+    if re.search("(?i)\.(jpg|png|gif)$",str(opt.source)):
+        is_image = True
+    else:
+        is_image = False
     
-    with torch.no_grad():    
+    with torch.no_grad():
         parent_conn, child_conn = mp.Pipe()
         lock = mp.Lock()
 
