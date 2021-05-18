@@ -73,7 +73,11 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
     last_box = []
     actual_box = []
     actual_distances = []
-    actual_coordinates = []
+
+    actual_token = []
+    last_token = []         # 0: No cogido, 1: Cogido temporalmente, 2: Cogido definitivamente
+    links = []              # Conexiones entre las personas de un frame con las del anterior frame
+    n_links = 0
 
     last_ids = []
     actual_ids = []
@@ -138,82 +142,104 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                                            int(xywh[0][0]),
                                            int(xywh[0][1])])
 
-                    p1 = (int(xywh[0][0]), int(xywh[0][1]))
-                    p2 = (int(xywh[0][2]), int(xywh[0][3]))
+                    actual_box.append(xywh)
 
-                    person_id = -1
-                    person_name = "???"
-                    direction = (0, 0)
-                    distance_to_box = -1
+                links = []
+                actual_distances = []
+                actual_token = []
+                last_token = []
 
-                    if len(last_box) == 0:
+                for i in range(len(actual_box)):
+                    links.append(-1)
+                    actual_distances.append(10000)
+                    actual_token.append(False)
+
+                for i in range(len(last_box)):
+                    last_token.append(0)
+
+                n_links = 0
+                while n_links < len(actual_box) and n_links < len(last_box):
+
+                    for i in range(len(actual_box)):
+                        if actual_token[i]: continue
+
+                        p1 = (int(actual_box[i][0][0]), int(actual_box[i][0][1]))
+                        p2 = (int(actual_box[i][0][2]), int(actual_box[i][0][3]))
+
+                        list_distances = []
+
+                        for person in range(len(last_box)):
+
+                            if last_token[person] == 2:
+                                list_distances.append(1000000)
+                            else:
+                                l1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
+                                l2 = (int(last_box[person][0][2]), int(last_box[person][0][3]))
+
+                                center1 = (int((p1[0] + p2[0]) / 2), int((p1[1] + p2[1]) / 2))
+                                center2 = (int((l1[0] + l2[0]) / 2), int((l1[1] + l2[1]) / 2))
+                                center3 = (center2[0] + last_dir[person][0], center2[1] + last_dir[person][1])
+
+                                dist = math.sqrt(((center1[0] - center3[0]) ** 2) + ((center1[1] - center3[1]) ** 2))
+
+                                list_distances.append(dist)
+
+
+                        fr_index = list_distances.index(min(list_distances))
+
+                        if last_token[fr_index] == 0:
+
+                            links[i] = fr_index
+                            actual_distances[i] = min(list_distances)
+                            last_token[fr_index] = 1
+                            actual_token[i] = True
+
+                        elif last_token[fr_index] == 1:
+
+                            other = links.index(fr_index)
+
+                            if min(list_distances) < actual_distances[other]:
+                                links[other] = -1
+                                links[i] = fr_index
+                                actual_distances[i] = min(list_distances)
+                                actual_distances[other] = 1000000
+                                actual_token[i] = True
+                                actual_token[other] = False
+
+                    for i in range(len(last_token)):
+                        if last_token[i] == 1:
+                            last_token[i] = 2
+                            n_links += 1
+
+                actual_ids = []
+                actual_names = []
+                actual_dir = []
+
+                for i in range(len(actual_box)):
+
+                    if links[i] == -1 or actual_distances[i] > im0.shape[1] / 5:
+                        actual_names.append("???")
                         max_id += 1
-                        person_id = max_id
-                        person_name = "???"
+                        actual_ids.append(max_id)
+                        actual_dir.append((0, 0))
+                        if max_id > 9999: max_id = 0
 
-                    for person in range(len(last_box)):
-                        l1 = (int(last_box[person][0][0]), int(last_box[person][0][1]))
-                        l2 = (int(last_box[person][0][2]), int(last_box[person][0][3]))
+                    else:
+                        actual_ids.append(last_ids[links[i]])
+                        actual_names.append(last_names[links[i]])
+
+                        p1 = (int(actual_box[i][0][0]), int(actual_box[i][0][1]))
+                        p2 = (int(actual_box[i][0][2]), int(actual_box[i][0][3]))
+
+                        l1 = (int(last_box[links[i]][0][0]), int(last_box[links[i]][0][1]))
+                        l2 = (int(last_box[links[i]][0][2]), int(last_box[links[i]][0][3]))
 
                         center1 = (int((p1[0] + p2[0]) / 2), int((p1[1] + p2[1]) / 2))
                         center2 = (int((l1[0] + l2[0]) / 2), int((l1[1] + l2[1]) / 2))
-                        center3 = (center2[0] + last_dir[person][0], center2[1] + last_dir[person][1])
 
-                        dist = math.sqrt(((center1[0] - center3[0]) ** 2) + ((center1[1] - center3[1]) ** 2))
+                        direction = (int(center1[0] - center2[0]), int(center1[1] - center2[1]))
+                        actual_dir.append(direction)
 
-                        if dist < im0.shape[1]/5:
-
-                            if last_names[person] not in actual_names:
-
-                                person_id = last_ids[person]
-                                person_name = last_names[person]
-                                distance_to_box = dist
-
-                                direction = (int(center1[0] - center2[0]), int(center1[1] - center2[1]))
-                                break
-
-                            else:
-
-                                other_index = actual_names.index(last_names[person])
-
-                                if dist < actual_distances[other_index]:
-
-                                    person_id = last_ids[person]
-                                    person_name = last_names[person]
-                                    distance_to_box = dist
-
-                                    direction = (int(center1[0] - center2[0]), int(center1[1] - center2[1]))
-
-                                    actual_box.pop(other_index)
-                                    actual_ids.pop(other_index)
-                                    actual_names.pop(other_index)
-                                    actual_dir.pop(other_index)
-                                    actual_distances.pop(other_index)
-
-                                else:
-                                    max_id += 1
-                                    person_id = max_id
-                                    person_name = "???"
-
-                                    if max_id > 9999: max_id = 0
-
-                                break
-
-                        else:
-                            # person_id = max(actual_ids, default=0)+1
-                            max_id += 1
-                            person_id = max_id
-                            person_name = "???"
-
-                            if max_id > 9999: max_id = 0
-
-
-                    actual_box.append(xywh)
-                    actual_ids.append(person_id)
-                    actual_names.append(person_name)
-                    actual_dir.append(direction)
-                    actual_distances.append(distance_to_box)
-                    actual_coordinates.append(xywh[0])
 
                 # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
 
@@ -221,7 +247,6 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                 last_ids = []
                 last_names = []
                 last_dir = []
-                actual_coordinates = []
 
                 for person in actual_box: last_box.append(person)
                 for person in actual_ids: last_ids.append(person)
@@ -260,9 +285,9 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                     cv2.putText(im0, last_names[person],
                                 (int(last_box[person][0][0]) + 2, int(last_box[person][0][1]) + 20), font,
                                 0.5, color, 1)
-                    cv2.putText(im0, str(last_ids[person]),
+                    '''cv2.putText(im0, str(last_ids[person]),
                                 (int(last_box[person][0][2]) - 80, int(last_box[person][0][1]) + 20), font,
-                                0.5, color, 1)
+                                0.5, color, 1)'''
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -369,34 +394,3 @@ if __name__ == "__main__":
 
     # if opt.source == '0':
     #     opt.source = 'http://192.168.246.170:8080/video'
-
-
-# def bridge(obj_source = '0', createEncodings = '0', streamServer = '0'):
-#     check_requirements(exclude=('pycocotools', 'thop'))
-
-#     if createEncodings == '1' or not os.path.isfile('dataset_faces.dat'):
-#         print('\nCreation of encodings\n')
-#         createEncondings()
-#     else:
-#         print('\nNo new creation of encodings\n')
-
-#     if streamServer == '1':
-#         print('\nStream de video online\n')
-#         servSocket = Socket()
-#     else:
-#         servSocket = None
-    
-#     with torch.no_grad():    
-#         parent_conn, child_conn = mp.Pipe()
-#         lock = mp.Lock()
-
-#         yoloProcess = mp.Process(target=detect, args=(obj_source, child_conn, lock, servSocket,))
-#         yoloProcess.start()
-
-#         faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
-#         faceRecognitionProcess.start()
-
-#         yoloProcess.join()
-#         faceRecognitionProcess.join()
-    
-#     return

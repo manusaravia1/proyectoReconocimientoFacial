@@ -78,23 +78,12 @@ def faceRecognition(face, x_crop, y_crop):
     encodings_rostros = []  # Encodings de los rostros
     nombres_rostros = []  # Nombre de la persona de cada rostro
 
-    print(str(face.shape) + "\n")
-
     #img_blurred = blur(img)
 
     # Localizamos cada rostro de la imagen y extraemos sus encodings:
     loc_rostros = face_recognition.face_locations(img, model='hog')
 
-    # Aplciamos distintos filtros a las imágenes
-    h = len(face)
-    w = len(face[0])
-    pos_rostros = [[0 for j in range(4)] for i in range(len(loc_rostros))]
 
-    for i in range(len(loc_rostros)):
-        pos_rostros[i][0] = loc_rostros[i][3] + x_crop
-        pos_rostros[i][1] = loc_rostros[i][0] + y_crop
-        pos_rostros[i][2] = loc_rostros[i][1] - loc_rostros[i][3]
-        pos_rostros[i][3] = loc_rostros[i][2] - loc_rostros[i][0]
     if (len(loc_rostros) > 0):
         crop_face = face[loc_rostros[0][0]:loc_rostros[0][2], loc_rostros[0][3]:loc_rostros[0][1]]
 

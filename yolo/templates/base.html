@@ -12,6 +12,7 @@
     <!-- Custom CSS  
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Oswald&family=Poppins&display=swap" rel="stylesheet"> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'base.css' %}">
     {% block extrahead %}{% endblock %}
 </head>
@@ -22,8 +23,8 @@
             <h1>
               <a href="{% url 'home' %}"> Proyecto Imagen</a>
             </h1>
+            <a class="enlace" href="{% url 'id' %}">+</a>
         </div>
-        <a class="enlace" href="{% url 'id' %}">+</a>
 	</header>
     {% if messages %}
         {% for message in messages %}

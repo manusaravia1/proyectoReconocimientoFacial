@@ -1,5 +1,5 @@
 :root{
-    --bg-color:  #1e1e1e;
+    --bg-color:  #090C10;
     --text-color: rgb(230, 230, 230);
     --shadow-color: #333333;
     --enfasis-color: #000;
@@ -35,21 +35,23 @@ body {
     padding: 0;
     height: 100%;
     margin: 0 auto;
-    width: 80%
 }
 
 header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 4px solid var(--color);
-    display: flex;
+    border-bottom: 1px solid var(--color);
     margin-bottom: 15px;
+    background-color: #171B22;
 }
-header a{
-    margin: auto;
+
+.box-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    width: 60%;
+    margin: 0 auto;
 }
 
 h1 {
@@ -64,4 +66,9 @@ h3 {
     font-size: 1.5em;
     margin: 0;
     font-weight: bold;
+}
+
+
+.archivo{
+    color:var(--enfasis-color)
 }

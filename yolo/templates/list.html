@@ -23,7 +23,7 @@
 
     {% if detectado_nombre %}
         <h3>Archivo detectado:</h3>
-        <a href="{{ detectado_url }}" download>{{ detectado_nombre }}</a>
+        <a class="archivo" href="{{ detectado_url }}" download>{{ detectado_nombre }}</a>
     {% else %}
         <h3>No documents.</h3>
     {% endif %}
