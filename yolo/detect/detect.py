@@ -297,6 +297,11 @@ def detect(obj_source, queueFace, queueYolo, servSocket = False, is_image = Fals
                     cv2.putText(im0, str(last_ids[person]),
                                 (int(last_box[person][0][2]) - 80, int(last_box[person][0][1]) + 20), font,
                                 0.5, color, 1)
+            else:
+                last_box = []
+                last_ids = []
+                last_names = []
+                last_dir = []
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({t2 - t1:.3f}s)')

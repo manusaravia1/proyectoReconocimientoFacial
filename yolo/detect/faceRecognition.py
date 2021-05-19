@@ -56,7 +56,7 @@ def faceRecognitionLoop(queueFace, queueYolo):
     newConn = 1
     while True:
         if not queueFace.empty():
-            print("face_recognition")
+            # print("face_recognition")
             newConn = queueFace.get()
             persons = []
             for person in newConn[0]:
