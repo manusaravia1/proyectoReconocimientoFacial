@@ -18,7 +18,7 @@ También recursos de CUDA.
 Instalamos las librerias del enviroment.
 
 ```
-conda install --file requirements.txt
+conda install --file requirementsconda.txt
 ```
 Migranos los cambios de Django del servidor
 ```
