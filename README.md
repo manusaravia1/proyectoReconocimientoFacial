@@ -1,6 +1,6 @@
 # proyectoImagen - realreco
 
-El sistema __realco__ es una herramienta de reconocimiento facial con plataforma web que nos ofrece distintas ventajas.
+El sistema __realreco__ es una herramienta de reconocimiento facial con plataforma web que nos ofrece distintas ventajas.
 - Localización y detección de personas a tiempo real
 - Identificación de personas en la base de datos
 - Seguimiento de personas
@@ -22,6 +22,7 @@ conda install --file requirements.txt
 ```
 Migranos los cambios de Django del servidor
 ```
+python manage.py makemigrations
 python manage.py migrate
 ```
 Iniciamos el programa
@@ -30,3 +31,4 @@ python manage.py runserver
 ```
 
 ## Funcionamiento
+![alt text](https://github.com/julio-robles/proyectoImagen/blob/main/fotos/arch.png)
