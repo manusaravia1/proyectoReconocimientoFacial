@@ -29,7 +29,7 @@ nombres_conocidos = []
 font = cv2.FONT_HERSHEY_COMPLEX
 
 
-def detect(obj_source, child_conn = False, lock = False, servSocket = False, save_img=False, is_image = False):
+def detect(obj_source, queueFace, queueYolo, servSocket = False, is_image = False, save_img=False):
     source, weights, view_img, save_txt, imgsz = obj_source, 'yolov5s.pt', False, False, 640
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
@@ -118,6 +118,8 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                 p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
             else:
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+
+
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
@@ -241,7 +243,6 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                         actual_dir.append(direction)
 
 
-                # --------------------  AQUI USAREMOS UNA MP.PIPE PARA PASAR LA IMAGEN A FACE_RECOGNITION  --------------------
 
                 last_box = []
                 last_ids = []
@@ -253,24 +254,32 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                 for person in actual_names: last_names.append(person)
                 for person in actual_dir: last_dir.append(person)
 
-                lock.acquire()
-                try:
-                    child_conn.send([cropped_images, actual_ids])
-                    if is_image:
-                        personas = child_conn.recv().wait()
-                    else:
-                        personas = child_conn.recv()  # siempre tiene que recibir
 
+
+                while not queueFace.empty():
+                    queueFace.get()
+                queueFace.put([cropped_images, actual_ids])
+                if is_image:
+                    personas = queueYolo.get()
                     for i in range(len(personas[0])):
-                        if personas[0][i][0] != "???":
-                            indexPersons = last_ids.index(personas[1][i])
-                            last_names[indexPersons] = personas[0][i][0]
-                finally:
-                    actual_box = []
-                    actual_ids = []
-                    actual_names = []
-                    actual_dir = []
-                    lock.release()
+                            if personas[0][i][0] != "???":
+                                indexPersons = last_ids.index(personas[1][i])
+                                last_names[indexPersons] = personas[0][i][0]
+                else:
+                    try:
+                        personas = queueYolo.get_nowait() 
+                        for i in range(len(personas[0])):
+                            if personas[0][i][0] != "???":
+                                indexPersons = last_ids.index(personas[1][i])
+                                last_names[indexPersons] = personas[0][i][0]
+                    except:
+                        pass
+
+                actual_box = []
+                actual_ids = []
+                actual_names = []
+                actual_dir = []
+
 
                 for person in range(len(last_ids)):
                     if (last_names[person] != "???"):
@@ -285,9 +294,9 @@ def detect(obj_source, child_conn = False, lock = False, servSocket = False, sav
                     cv2.putText(im0, last_names[person],
                                 (int(last_box[person][0][0]) + 2, int(last_box[person][0][1]) + 20), font,
                                 0.5, color, 1)
-                    '''cv2.putText(im0, str(last_ids[person]),
+                    cv2.putText(im0, str(last_ids[person]),
                                 (int(last_box[person][0][2]) - 80, int(last_box[person][0][1]) + 20), font,
-                                0.5, color, 1)'''
+                                0.5, color, 1)
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -346,7 +355,6 @@ class Socket:
             self.s.sendall(jpg_as_text)
         except:
             pass
-            #print("Fallo en la conexion")
 
 
 if __name__ == "__main__":
@@ -378,13 +386,13 @@ if __name__ == "__main__":
         is_image = False
     
     with torch.no_grad():
-        parent_conn, child_conn = mp.Pipe()
-        lock = mp.Lock()
+        queueFace = mp.Queue()
+        queueYolo = mp.Queue()
 
-        yoloProcess = mp.Process(target=detect, args=(opt.source, child_conn, lock, servSocket,))
+        yoloProcess = mp.Process(target=detect, args=(opt.source, queueFace, queueYolo, servSocket, is_image))
         yoloProcess.start()
 
-        faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(parent_conn, lock,))
+        faceRecognitionProcess = mp.Process(target=faceRecognitionLoop, args=(queueFace, queueYolo,))
         faceRecognitionProcess.start()
         yoloProcess.join()
         print("-------------------------yolo")

@@ -5,7 +5,7 @@ import glob
 import face_recognition
 from filters import *
 from PIL import Image
-
+import time
 
 def createEncondings():  # Creamos los encodings si es necesario
     global nombres_conocidos
@@ -51,26 +51,34 @@ def loadEncondings():
     print('Users in encodigns:\n' + str(nombres_conocidos) + '\n')
 
 
-def faceRecognitionLoop(parent_conn, lock):
+def faceRecognitionLoop(queueFace, queueYolo):
     loadEncondings()
-    oldConn = 0
     newConn = 1
     while True:
-        newConn = parent_conn.recv()
-        persons = []
-        for person in newConn[0]:
-            nombre = faceRecognition(person[0], person[1], person[2])
-            if nombre:
-                persons.append(nombre)
-            else:
-                persons.append(['???'])
-        persons2 = []
-        persons2.append(persons)
-        persons2.append(newConn[1])
-        parent_conn.send(persons2)
+        if not queueFace.empty():
+            print("face_recognition")
+            newConn = queueFace.get()
+            persons = []
+            for person in newConn[0]:
+                nombre = faceRecognition(person[0])
+                if nombre:
+                    persons.append(nombre)
+                else:
+                    persons.append(['???'])
+            persons2 = []
+            persons2.append(persons)
+            persons2.append(newConn[1])
+            queueYolo.put(persons2)
+            
 
 
-def faceRecognition(face, x_crop, y_crop):
+
+
+    
+
+
+
+def faceRecognition(face):
     # img = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
     img = face
     # Definir tres arrays, que servirán para guardar los parámetros de los rostros que se encuentren en la imagen:

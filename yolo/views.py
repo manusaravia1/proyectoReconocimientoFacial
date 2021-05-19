@@ -37,7 +37,7 @@ class IPWebCam():
 			s.listen(10)
 			print("Listening on port " + str(self.PORT))
 			llamada = "python yolo/detect/detect.py --source " + ipwebcam + " --streamServer 1"
-			self.proceso = subprocess.Popen(llamada.split(), stdout=subprocess.PIPE, shell=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+			self.proceso = subprocess.Popen(llamada.split(), shell=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 			conn, addr = s.accept()
 			with conn:
 				print('Connected by', addr)
