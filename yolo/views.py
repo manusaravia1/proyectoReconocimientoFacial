@@ -14,8 +14,11 @@ import os
 import shutil
 import time
 import platform
+
 from .models import Document, FaceDocument
 from .forms import DocumentForm, IpForm, IdForm
+from .detect.redisDbase import rdb
+
 
 
 class IPWebCam():
@@ -97,8 +100,9 @@ def upload(request):
 
 def id(request):
 	if request.method == 'POST':
-		if os.path.exists("dataset_faces.dat"):
-			os.remove("dataset_faces.dat")
+		# Vaciamos la db redis
+		rdb.empty()
+
 		form = IdForm(request.POST, request.FILES)
 		if form.is_valid():
 			FaceDocument(faces=request.FILES['img']).save()
