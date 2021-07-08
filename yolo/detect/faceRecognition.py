@@ -20,8 +20,7 @@ def createEncondings():  # Creamos los encodings si es necesario
         # To REDIS: key = nombre, value = encodings
         rdb.addEncoding(nombre, encodings)
 
-    #print(">>> createEncondings, {} encodings to redis".format(rdb.howMany()))
-    print(">>> createEncodings() time: {}".format(time.time() - inicio))
+    print(">>> createEncodings({}) time: {}".format(rdb.howMany(), time.time() - inicio))
 
 
 def loadEncondings():
@@ -31,7 +30,7 @@ def loadEncondings():
     nombres_conocidos = rdb.getAllKeys() # en modo lista de strings
     global encodings_conocidos
     encodings_conocidos  = np.array(rdb.getAllEncodings())  # a formato numpy array
-    print(">>> loadEncodings() time: {}".format(time.time() - inicio))
+    print(">>> loadEncodings({}) time: {}".format(rdb.howMany(), time.time() - inicio))
 
 
 def faceRecognitionLoop(queueFace, queueYolo):
@@ -87,5 +86,5 @@ def faceRecognition(face):
         # Añadimos el nombre de la persona identificada en el array de nombres:
         nombres_rostros.append(nombre)
 
-    print("\n>>> faceRecognition() match = {}, time: {}".format(match, time.time() - inicio))
+    #print("\n>>> faceRecognition() match = {}, time: {}".format(match, time.time() - inicio))
     return nombres_rostros
