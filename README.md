@@ -8,9 +8,9 @@ El sistema __realreco__ es una herramienta de reconocimiento facial con platafor
 - Ejecución a través de una cámara externa
 ## Developers
 - Julio Robles
+- Manuel Saravia
 - Jorge de Santiago
 - Luis Crespo
-- Manuel Saravia
 
 ## Instalación y puesta en marcha
 Este programa está diseñado con librerías de instalación en Conda.
