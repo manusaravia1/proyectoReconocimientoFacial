@@ -6,6 +6,9 @@ El sistema __realreco__ es una herramienta de reconocimiento facial con platafor
 - Seguimiento de personas
 - Visión web sencilla y accesible
 - Ejecución a través de una cámara externa
+
+- Branch "main_RT_redis": mejora del rendimiento del proyecto existente incorporando una base de datos Redis para almacenar los encodings y acceder a ellos directamente desde Redis durante el proceso de identificación o “matching” entre una nueva imagen (cara) y el conjunto de encodings almacenados.
+ 
 ## Developers
 - Julio Robles
 - Manuel Saravia
@@ -29,6 +32,4 @@ Iniciamos el programa
 ```
 python manage.py runserver
 ```
-
-## Funcionamiento
-![alt text](https://github.com/julio-robles/proyectoImagen/blob/main/fotos/arch.png)
+Para el Branch "main_RT_redis" es necesario instalar Redis así como la librería redis de Python.
